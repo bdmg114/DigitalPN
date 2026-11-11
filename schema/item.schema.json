@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bdmg114/DigitalPN/schema/item.schema.json",
+  "title": "DigitalPN item record (v1)",
+  "description": "메모를 이루는 항목 하나의 한 리비전. 기기 저널(JSONL)의 한 줄이자 BLE/HTTP/USB 전송의 단위.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "seq", "id", "note", "ord", "kind", "text", "rev", "created", "updated", "clock", "dev"],
+  "properties": {
+    "v": { "const": 1, "description": "스키마 버전" },
+    "seq": { "type": "integer", "minimum": 1, "description": "기기 저널 일련번호. 기기 안에서 단조 증가하며 동기화 커서로 쓴다." },
+    "id": { "$ref": "#/$defs/ulid", "description": "항목 ID. 수정·삭제해도 바뀌지 않는다." },
+    "note": { "$ref": "#/$defs/ulid", "description": "이 항목이 속한 메모의 ID (메모의 첫 항목 ID와 같다)." },
+    "ord": { "type": "integer", "minimum": 0, "description": "메모 안에서의 순서. 1024 간격으로 부여해 사이 삽입을 허용한다." },
+    "kind": { "enum": ["text", "task", "head"], "description": "text: 일반 문단, task: 할 일, head: 제목" },
+    "text": { "type": "string", "description": "항목 본문 (UTF-8, NFC). 삭제 리비전에서는 빈 문자열." },
+    "done": { "type": "boolean", "description": "kind=task 일 때 완료 여부" },
+    "tags": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true, "description": "본문의 #태그 를 펌웨어가 추출한 것 (# 제외)" },
+    "rev": { "type": "integer", "minimum": 1, "description": "항목 리비전. 같은 id 에서는 rev 가 큰 레코드가 이긴다." },
+    "deleted": { "type": "boolean", "description": "true 면 삭제 표시(툼스톤)" },
+    "created": { "$ref": "#/$defs/time", "description": "항목을 처음 만든 시각" },
+    "updated": { "$ref": "#/$defs/time", "description": "이 리비전을 쓴 시각" },
+    "clock": { "enum": ["synced", "unsynced"], "description": "unsynced: 기기 시계가 맞춰지지 않은 상태에서 기록됨. 시각은 추정값이므로 순서는 seq 를 믿을 것." },
+    "dev": { "type": "string", "pattern": "^dpn-[0-9a-f]{6}$", "description": "기기 ID" }
+  },
+  "$defs": {
+    "ulid": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "time": { "type": "string", "format": "date-time" }
+  },
+  "if": { "properties": { "kind": { "const": "task" } } },
+  "then": { "required": ["done"] }
+}
