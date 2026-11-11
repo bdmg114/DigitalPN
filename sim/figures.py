@@ -75,7 +75,7 @@ def fig_reach(designs, fname):
 
 def fig_forms(rows, fname):
     """rows: [(label, result dict)]"""
-    fig, ax = plt.subplots(figsize=(8.6, 4.6))
+    fig, ax = plt.subplots(figsize=(8.8, 5.4))
     y = np.arange(len(rows))[::-1]
     bh = 0.24
     for k, h in enumerate(HANDS):
@@ -130,13 +130,17 @@ if __name__ == "__main__":
     results = json.load(open(Path(__file__).parent / "results.json"))
     base = split_layout(9.0, 9.5, 4.75)
     v02 = split_layout(9.0, 10.0, -6.0)
-    fig_reach([("v0.1 (9.0 x 9.5, keys high)", base), ("v0.2 (9.0 x 10.0, keys low)", v02)], "sim-reach.png")
+    v03 = split_layout(9.0, 10.0, -6.0, stagger=(-5, -5, -1, 3, 4))
+    fig_reach([("v0.1 (flat grid, keys high)", base), ("v0.2 (flat grid, keys low)", v02),
+               ("v0.3 (curved rows)", v03)], "sim-reach.png")
     fig_pitch(results, 0.0, None, "sim-pitch.png")
     bw = next(r for r in results if r["name"] == "wide")
     bp = next(r for r in results if r["name"] == "portrait")
     tilt = next(r for r in results if r["name"] == "split" and r["rot"] > 0)
     fig_forms([("portrait slab, keys at bottom\n(best: %g x %g mm)" % (bp["px"], bp["py"]), bp),
-               ("split, tilted or fanned clusters\n(best: %g x %g mm, %g deg)" % (tilt["px"], tilt["py"], tilt["rot"]), tilt),
-               ("landscape, clusters joined, display on top\n(best: %g x %g mm)" % (bw["px"], bw["py"]), bw),
-               ("split, v0.1 (9.0 x 9.5 mm)", evaluate(base)), ("split, v0.2 (9.0 x 10.0 mm)", evaluate(v02))],
+               ("split, whole cluster tilted or fanned\n(best: %g x %g mm, %g deg)" % (tilt["px"], tilt["py"], tilt["rot"]), tilt),
+               ("split v0.1: flat 9.0 x 9.5 mm, keys high", evaluate(base)),
+               ("split v0.2: flat 9.0 x 10.0 mm, keys low", evaluate(v02)),
+               ("split v0.3: 9.0 x 10.0 mm, curved rows", evaluate(v03)),
+               ("clusters joined, display on top\n(best: flat %g x %g mm)" % (bw["px"], bw["py"]), bw)],
               "sim-forms.png")

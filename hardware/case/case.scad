@@ -37,7 +37,7 @@ hole_h = cap_h + 2 * cap_gap;
 
 module key_holes_2d(grow = 0) {
     for (s = [-1, 1]) for (c = caps())
-        translate([col_x(s, c[0]), row_y(c[1])])
+        translate([col_x(s, c[0]), key_y(c[0], c[1], c[2])])
             rrect((c[2] - 1) * pitch_x + hole_w + 2 * grow, hole_h + 2 * grow, 1.2);
 }
 
@@ -94,19 +94,17 @@ module bottom_shell() {
 
 // 한쪽 키매트: 얇은 시트 위에 키캡이 솟아 있고, 아래에 스위치를 누르는 돌기가 있다.
 module keymat(side) {
-    x_in = key_x0 - pitch_x / 2 + 0.3;
-    x_out = key_x0 + (cols - 1) * pitch_x + pitch_x / 2 - 0.3;
-    y_top = row_y(0) + pitch_y / 2 - 0.3;
-    y_bot = row_y(rows - 1) - pitch_y / 2 + 0.3;
-    translate([0, 0, mat_z]) linear_extrude(mat_t)
-        translate([side * (x_in + x_out) / 2, (y_top + y_bot) / 2]) rrect(x_out - x_in, y_top - y_bot, 1);
-    for (c = caps()) translate([col_x(side, c[0]), row_y(c[1]), mat_z + mat_t - eps])
+    // 시트: 키캡 자리들을 조금 키워 하나로 이은 모양 (곡선 배열을 그대로 따라간다)
+    translate([0, 0, mat_z]) linear_extrude(mat_t) offset(-1.5) offset(1.5 + (pitch_x - cap_w) / 2 - 0.3)
+        for (c = caps()) translate([col_x(side, c[0]), key_y(c[0], c[1], c[2])])
+            square([(c[2] - 1) * pitch_x + cap_w, cap_h], center = true);
+    for (c = caps()) translate([col_x(side, c[0]), key_y(c[0], c[1], c[2]), mat_z + mat_t - eps])
         hull() {
             linear_extrude(eps) rrect((c[2] - 1) * pitch_x + cap_w, cap_h, 1.0);
             translate([0, 0, top_z + cap_proud - mat_z - mat_t - 0.6])
                 linear_extrude(0.6) rrect((c[2] - 1) * pitch_x + cap_w - 0.8, cap_h - 0.8, 1.0);
         }
-    for (k = switches()) translate([col_x(side, k[0]), row_y(k[1]), sw_h])
+    for (k = switches()) translate([col_x(side, k[0]), k[1], sw_h])
         cylinder(d = nub_d, h = mat_z - sw_h + eps);
 }
 

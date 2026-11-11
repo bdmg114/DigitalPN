@@ -111,9 +111,17 @@ def _corners(xy, wide, px, py, ang):
     return np.stack(out, 1)
 
 
-def split_layout(px, py, yc, rot=0.0, R0=None, bay=44.0, gap=1.5, H=70.0, thumb_shift=False, edge=3.0):
-    """화면을 가운데 두고 좌우로 나눈 배열."""
+def split_layout(px, py, yc, rot=0.0, R0=None, bay=44.0, gap=1.5, H=70.0, thumb_shift=False, edge=3.0,
+                 stagger=None):
+    """화면을 가운데 두고 좌우로 나눈 배열.
+    stagger: 열마다의 세로 이동량 5개(안쪽 열부터, mm). 열 위치는 그대로 두고 행을 곡선으로 만든다."""
     labs, xy, wide, ang = _half(px, py, rot, thumb_shift, R0)
+    if stagger is not None:
+        col = np.rint((xy[:, 0] + 2 * px) / px * 2) / 2            # 키 중심의 열 번호(넓은 키는 x.5 가능)
+        for k in range(len(labs)):
+            lo = int(math.floor(col[k] - (wide[k] - 1) / 2 + 1e-6))
+            hi = int(math.ceil(col[k] + (wide[k] - 1) / 2 - 1e-6))
+            xy[k, 1] += min(stagger[c] for c in range(lo, hi + 1))  # 넓은 키는 덮는 열 중 가장 낮은 쪽에 맞춤
     cor = _corners(xy, wide, px, py, ang)
     xy = xy + np.array([bay / 2 + gap - cor[..., 0].min(), yc])
     cor = _corners(xy, wide, px, py, ang)
@@ -122,7 +130,8 @@ def split_layout(px, py, yc, rot=0.0, R0=None, bay=44.0, gap=1.5, H=70.0, thumb_
     ll, lxy = _mirror(labs, xy)
     lay = Layout("split", labs + ll, np.vstack([xy, lxy]),
                  np.array([1] * len(labs) + [0] * len(ll)), np.concatenate([wide, wide]),
-                 px, py, W, H, dict(px=px, py=py, yc=yc, rot=rot, R0=R0, fits=bool(fits)),
+                 px, py, W, H, dict(px=px, py=py, yc=yc, rot=rot, R0=R0, fits=bool(fits),
+                      stagger=None if stagger is None else [float(s) for s in stagger]),
                  "thumb" if thumb_shift else "shoulder")
     lay.ang = np.concatenate([ang, -ang])
     return lay
@@ -156,6 +165,8 @@ def key_freq(lay: Layout):
         if k == "SPC":
             f[lay.index("SPC_L")] += 0.5
             f[lay.index("SPC_R")] += 0.5
+        elif k in lay.labels:                      # ENT 같은 기능 키
+            f[lay.index(k)] += 1
         elif k.lower() in lay.labels:
             f[lay.index(k.lower())] += 1
             if k.isupper() and len(k) == 1 and lay.shift == "thumb":
@@ -278,7 +289,7 @@ def simulate(lay: Layout, D, tp: TypingParams = TypingParams()):
         if key == "SPC":
             press(spc[1 - prev_hand])
             continue
-        k = idx.get(key.lower())
+        k = idx[key] if key in idx else idx.get(key.lower())
         if k is None:
             continue
         if key.isupper() and len(key) == 1:

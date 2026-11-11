@@ -13,10 +13,12 @@ def first(name):
 
 
 w, p = first("wide"), first("portrait")
+CURVE = (-5, -5, -1, 3, 4)
 CAND = {
-    "split v0.2 (9.0x10.0)": lambda: split_layout(9.0, 10.0, -6.0),
-    "split v0.1 (9.0x9.5)": lambda: split_layout(9.0, 9.5, 4.75),
-    "v0.2 + thumb Shift": lambda: split_layout(9.0, 10.0, -6.0, thumb_shift=True),
+    "v0.3 curved": lambda: split_layout(9.0, 10.0, -6.0, stagger=CURVE),
+    "v0.2 flat": lambda: split_layout(9.0, 10.0, -6.0),
+    "v0.1 flat, high": lambda: split_layout(9.0, 9.5, 4.75),
+    "v0.3 + thumb Shift": lambda: split_layout(9.0, 10.0, -6.0, stagger=CURVE, thumb_shift=True),
     "joined best": lambda: slab_layout(w["px"], w["py"], w["lift"], 70.0, "wide", thumb_shift=(w["shift"] == "thumb")),
     "portrait best": lambda: slab_layout(p["px"], p["py"], p["lift"], 120.0, "portrait"),
 }
@@ -33,7 +35,7 @@ CASES = {
 
 if __name__ == "__main__":
     out = {}
-    print("%-24s" % "", *["%-22s" % c[:22] for c in CAND])
+    print("%-24s" % "", *["%-20s" % c[:20] for c in CAND])
     for cname, (tkw, hkw) in CASES.items():
         row = {}
         for name, mk in CAND.items():
@@ -42,5 +44,5 @@ if __name__ == "__main__":
                              unreach=sum(res[h]["unreach"] for h in HANDS),
                              small=res["small"]["eff_kpm"], err=res["medium"]["err"])
         out[cname] = row
-        print("%-24s" % cname, *["%5.0f (unreach %2d)      " % (v["score"], v["unreach"]) for v in row.values()])
+        print("%-24s" % cname, *["%5.0f (unreach %2d)  " % (v["score"], v["unreach"]) for v in row.values()])
     json.dump(out, open(Path(__file__).parent / "sensitivity.json", "w"), indent=1)
