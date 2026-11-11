@@ -12,13 +12,12 @@ def first(name):
     return next(r for r in results if r["name"] == name)
 
 
-b = first("split")
 w, p = first("wide"), first("portrait")
 CAND = {
-    "split optimum": lambda: split_layout(b["px"], b["py"], b["yc"], rot=b["rot"], R0=b["R0"]),
+    "split v0.2 (9.0x10.0)": lambda: split_layout(9.0, 10.0, -6.0),
     "split v0.1 (9.0x9.5)": lambda: split_layout(9.0, 9.5, 4.75),
-    "split, thumb Shift": lambda: split_layout(b["px"], b["py"], b["yc"], rot=b["rot"], R0=b["R0"], thumb_shift=True),
-    "wide best": lambda: slab_layout(w["px"], w["py"], w["lift"], 70.0, "wide"),
+    "v0.2 + thumb Shift": lambda: split_layout(9.0, 10.0, -6.0, thumb_shift=True),
+    "joined best": lambda: slab_layout(w["px"], w["py"], w["lift"], 70.0, "wide", thumb_shift=(w["shift"] == "thumb")),
     "portrait best": lambda: slab_layout(p["px"], p["py"], p["lift"], 120.0, "portrait"),
 }
 CASES = {

@@ -28,7 +28,8 @@ def job(spec):
     kind, kw = spec
     if kind == "split":
         best = None
-        for yc in (-6.0, -1.0, 4.0, 9.0):          # 묶음의 세로 위치는 맞는 것 중 가장 좋은 것
+        kw = dict(kw)
+        for yc in kw.pop("ycs", (-6.0, 0.0, 6.0)):   # 묶음의 세로 위치는 맞는 것 중 가장 좋은 것
             lay = split_layout(yc=yc, **kw)
             if not lay.params["fits"] or lay.W > MAX_W:
                 continue
@@ -43,7 +44,7 @@ def job(spec):
 def specs():
     out = []
     for px, py, rot, R0 in itertools.product(
-            (7.5, 8.0, 8.5, 9.0, 9.5, 10.0), (7.0, 7.5, 8.0, 8.5, 9.0, 9.5), (0, 15, 30, 45), (None, 50.0, 75.0)):
+            (7.5, 8.0, 8.5, 9.0, 9.5), (7.5, 8.5, 9.5), (0, 15, 30), (None, 60.0)):
         out.append(("split", dict(px=px, py=py, rot=float(rot), R0=R0)))
     for px, py, lift in itertools.product((11.0, 12.0, 13.0, 14.0), (8.0, 9.0, 10.0), (0.0, 6.0, 12.0)):
         out.append(("slab", dict(px=px, py=py, lift=lift, H=70.0, name="wide")))
@@ -52,8 +53,21 @@ def specs():
     return out
 
 
+def refine_specs():
+    """1차 탐색에서 경계에 걸린 변수(행 간격, 세로 위치)를 넓혀 다시 본다."""
+    out = []
+    for px, py, yc in itertools.product((9.0, 9.5), (9.5, 10.0, 10.5, 11.0), (-12.0, -9.0, -6.0, -3.0, 0.0, 4.0)):
+        out.append(("split", dict(px=px, py=py, rot=0.0, R0=None, ycs=(yc,))))
+    # 화면을 위로 올리고 좌우 묶음을 붙인 형태를 같은 조건(어깨 Shift)으로 비교
+    for px, py, lift in itertools.product((9.0, 9.5, 10.0, 10.5, 11.0), (9.5, 10.0), (0.0, 6.0)):
+        out.append(("slab", dict(px=px, py=py, lift=lift, H=70.0, name="wide", thumb_shift=False)))
+    return out
+
+
 if __name__ == "__main__":
-    sp = specs()
+    refine = "--refine" in sys.argv
+    sp = refine_specs() if refine else specs()
+    print(len(sp), "specs", file=sys.stderr)
     with Pool() as pool:
         res = []
         for i, r in enumerate(pool.imap(job, sp, chunksize=4)):
@@ -61,6 +75,8 @@ if __name__ == "__main__":
                 res.append(r)
             if i % 50 == 0:
                 print(i, len(sp), file=sys.stderr, flush=True)
+    if refine:
+        res += json.load(open("results.json"))
     res.sort(key=lambda r: -r["score"])
     json.dump(res, open("results.json", "w"), ensure_ascii=False)
     for r in res[:15]:

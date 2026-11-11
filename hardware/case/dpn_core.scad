@@ -1,4 +1,4 @@
-// DigitalPN — Core Interface v0.1
+// DigitalPN — Core Interface v0.2  (v0.1 대비: 행 간격 9.5→10.0, 키 묶음을 10 mm 아래로. 근거: docs/simulation.md)
 // 케이스가 지켜야 하는 "코어(PCB 조립체)"의 치수 계약. 단위 mm.
 // 원점: PCB 중심, PCB 앞면(키/디스플레이 면)이 z=0, +z가 사용자 쪽, +y가 위(어깨 버튼 쪽).
 // 이 파일의 값은 docs/hardware.md 의 표와 1:1로 일치해야 한다.
@@ -18,9 +18,9 @@ disp_act_w = 35.28;  disp_act_h = 58.8;                      // 유효 표시 �
 disp_bay_w = 44;     disp_bay_h = 64;                        // 다른 패널용 최대 허용 영역
 
 // ── 키 격자 (좌우 각 5열 × 4행) ──────────────────────
-pitch_x = 9.0;   pitch_y = 9.5;
+pitch_x = 9.0;   pitch_y = 10.0;
 key_x0 = 28;     // 디스플레이에 가장 가까운 열의 중심 |x|
-key_y0 = 19;     // 맨 윗행 중심 y
+key_y0 = 9;      // 맨 윗행 중심 y
 cols = 5;  rows = 4;
 sw_h = 2.0;      // 스위치 높이(액추에이터 포함)
 

@@ -180,28 +180,40 @@ def best_grip(lay: Layout, hand_length, side, freq, **thumb_kw):
     lo = (lay.W / 2 - GRIP["inside"], -lay.H / 2 - out, GRIP["az"][0])
     hi = (lay.W / 2 + out, -lay.H / 2 + GRIP["up_frac"] * min(lay.H, 80), GRIP["az"][1])
 
-    def search(center, span, n):
+    def score_of(D):
+        un = ~np.isfinite(D)
+        return (np.where(un, 0, D) * f).sum(-1) + 20 * (un * f).sum(-1)
+
+    def grid(center, span, n):
         axes = [np.unique(np.clip(np.linspace(c - s, c + s, n), l, h)) for c, s, l, h in zip(center, span, lo, hi)]
         CX, CY, AZ = [a.ravel() for a in np.meshgrid(*axes, indexing="ij")]
-        cmc = np.stack([CX, CY], -1)
-        best = None
-        for ri, table in enumerate(tables):
-            D = key_discomfort(table, p, cmc, AZ, keys, lay.W / 2, lay.H / 2)
-            un = ~np.isfinite(D)
-            score = (np.where(un, 0, D) * f).sum(-1) + 20 * (un * f).sum(-1)
-            i = int(np.argmin(score))
-            if best is None or score[i] < best[0]:
-                best = (float(score[i]), (float(CX[i]), float(CY[i]), float(AZ[i])), ROLLS[ri], D[i])
-        return best
+        return CX, CY, AZ, np.stack([CX, CY], -1)
 
     mid = [(l + h) / 2 for l, h in zip(lo, hi)]
     half = [(h - l) / 2 for l, h in zip(lo, hi)]
-    b = search(mid, half, 13)
-    for shrink in (8, 30):
-        b2 = search(b[1], [h / shrink for h in half], 7)
-        if b2[0] < b[0]:
-            b = b2
-    return dict(cmc=b[1][:2], az=b[1][2], roll=b[2]), b[3]
+    # 1) 거친 격자: 기울기(roll)마다 가장 좋은 지점을 후보로 남긴다
+    CX, CY, AZ, cmc = grid(mid, half, 13)
+    cands = []
+    for ri, table in enumerate(tables):
+        D = key_discomfort(table, p, cmc, AZ, keys, lay.W / 2, lay.H / 2)
+        sc = score_of(D)
+        for i in np.argsort(sc)[:2]:
+            cands.append((float(sc[i]), (float(CX[i]), float(CY[i]), float(AZ[i])), ri, D[i]))
+    cands.sort(key=lambda c: c[0])
+    # 2) 상위 후보 여러 개를 각각 좁혀 가며 다듬는다 (국소 최적 회피)
+    best = cands[0]
+    for c in cands[:5]:
+        cur = c
+        for shrink in (8, 30):
+            CX, CY, AZ, cmc = grid(cur[1], [h / shrink for h in half], 7)
+            D = key_discomfort(tables[cur[2]], p, cmc, AZ, keys, lay.W / 2, lay.H / 2)
+            sc = score_of(D)
+            i = int(np.argmin(sc))
+            if sc[i] < cur[0]:
+                cur = (float(sc[i]), (float(CX[i]), float(CY[i]), float(AZ[i])), cur[2], D[i])
+        if cur[0] < best[0]:
+            best = cur
+    return dict(cmc=best[1][:2], az=best[1][2], roll=ROLLS[best[2]]), best[3]
 
 
 # ── 타자 모델 ────────────────────────────────────────────────────

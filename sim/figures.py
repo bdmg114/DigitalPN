@@ -47,7 +47,7 @@ def draw_device(ax, lay, res, title, show_bar=False):
         ax.add_patch(Wedge((cx, cy), 0.53 * res["hl"], th - 26.5, th + 26.5, width=0.53 * res["hl"] - 0.33 * res["hl"],
                            fc="none", ec=INK2, lw=0.6, ls=(0, (3, 3))))
     ax.set_xlim(-135, 135)
-    ax.set_ylim(-105, 45)
+    ax.set_ylim(-108, 42)
     ax.set_aspect("equal")
     ax.axis("off")
     ax.set_title(title, loc="left", pad=2)
@@ -60,22 +60,22 @@ def fig_reach(designs, fname):
         for j, h in enumerate(HANDS):
             res[h]["hl"] = HANDS[h]
             r = res[h]
-            draw_device(axes[i][j], lay, r, f"{name} — {HAND_LABEL[h]}")
+            draw_device(axes[i][j], lay, r, f"{name} · {h} hand ({HANDS[h]:.0f} mm)")
             axes[i][j].text(-133, -100, f"{r['eff_kpm']:.0f} keys/min effective · {100 * r['err']:.1f}% errors · "
                                         f"mean strain {r['discomfort']:.2f}", fontsize=8, color=INK2)
-    cax = fig.add_axes([0.36, 0.035, 0.28, 0.012])
+    cax = fig.add_axes([0.36, 0.085, 0.28, 0.014])
     cb = fig.colorbar(plt.cm.ScalarMappable(cmap=SEQ, norm=plt.Normalize(0, 1)), cax=cax, orientation="horizontal")
     cb.set_label("joint strain per key (0 = neutral posture, 1 = joints at their limits) · dot = thumb base joint, "
                  "dashed = joint-limit reach without moving the hand", fontsize=8)
     cb.outline.set_visible(False)
-    fig.subplots_adjust(left=0.01, right=0.99, top=0.96, bottom=0.07, wspace=0.02, hspace=0.12)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.96, bottom=0.13, wspace=0.02, hspace=0.05)
     fig.savefig(OUT / fname, dpi=170)
     plt.close(fig)
 
 
 def fig_forms(rows, fname):
     """rows: [(label, result dict)]"""
-    fig, ax = plt.subplots(figsize=(8.2, 3.6))
+    fig, ax = plt.subplots(figsize=(8.6, 4.6))
     y = np.arange(len(rows))[::-1]
     bh = 0.24
     for k, h in enumerate(HANDS):
@@ -89,7 +89,7 @@ def fig_forms(rows, fname):
     ax.set_axisbelow(True)
     ax.tick_params(length=0)
     ax.set_xlim(0, max(r[h]["eff_kpm"] for _, r in rows for h in HANDS) * 1.12)
-    ax.legend(frameon=False, loc="lower right", fontsize=8)
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=3, fontsize=8)
     ax.set_title("Simulated typing speed by form", loc="left")
     fig.tight_layout()
     fig.savefig(OUT / fname, dpi=170)
@@ -102,7 +102,8 @@ def fig_pitch(results, rot, R0, fname):
     pys = sorted({r["py"] for r in sel})
     Z = np.full((len(pys), len(pxs)), np.nan)
     for r in sel:
-        Z[pys.index(r["py"]), pxs.index(r["px"])] = r["score"]
+        i, j = pys.index(r["py"]), pxs.index(r["px"])
+        Z[i, j] = np.nanmax([Z[i, j], r["score"]])       # 세로 위치는 가장 좋은 것
     fig, ax = plt.subplots(figsize=(6.2, 4.2))
     im = ax.imshow(Z, origin="lower", cmap=SEQ, aspect="auto")
     for i in range(len(pys)):
@@ -111,7 +112,7 @@ def fig_pitch(results, rot, R0, fname):
                 ax.text(j, i, f"{Z[i, j]:.0f}", ha="center", va="center", fontsize=8,
                         color="white" if Z[i, j] > np.nanmean(Z) else INK)
             else:
-                ax.text(j, i, "too wide", ha="center", va="center", fontsize=6.5, color=INK2)
+                ax.text(j, i, "not run", ha="center", va="center", fontsize=6.5, color=INK2)
     ax.set_xticks(range(len(pxs)), [f"{v:g}" for v in pxs])
     ax.set_yticks(range(len(pys)), [f"{v:g}" for v in pys])
     ax.set_xlabel("column pitch (mm)")
@@ -119,7 +120,7 @@ def fig_pitch(results, rot, R0, fname):
     ax.tick_params(length=0)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_title("Effective keystrokes/min vs key pitch (split form, hand-size weighted)", loc="left")
+    ax.set_title("Effective keystrokes/min vs key pitch\n(split form, untilted, hand-size weighted)", loc="left")
     fig.tight_layout()
     fig.savefig(OUT / fname, dpi=170)
     plt.close(fig)
@@ -127,12 +128,15 @@ def fig_pitch(results, rot, R0, fname):
 
 if __name__ == "__main__":
     results = json.load(open(Path(__file__).parent / "results.json"))
-    best = next(r for r in results if r["name"] == "split")
     base = split_layout(9.0, 9.5, 4.75)
-    opt = split_layout(best["px"], best["py"], best["yc"], rot=best["rot"], R0=best["R0"])
-    fig_reach([("v0.1 (9.0 x 9.5 mm grid)", base), ("optimum", opt)], "sim-reach.png")
-    fig_pitch(results, best["rot"], best["R0"], "sim-pitch.png")
+    v02 = split_layout(9.0, 10.0, -6.0)
+    fig_reach([("v0.1 (9.0 x 9.5, keys high)", base), ("v0.2 (9.0 x 10.0, keys low)", v02)], "sim-reach.png")
+    fig_pitch(results, 0.0, None, "sim-pitch.png")
     bw = next(r for r in results if r["name"] == "wide")
     bp = next(r for r in results if r["name"] == "portrait")
-    fig_forms([("portrait slab, keys at bottom\n(best of sweep)", bp), ("landscape, 10 columns in a row\n(best of sweep)", bw),
-               ("split, v0.1 grid", {h: evaluate(base)[h] for h in HANDS}), ("split, optimum", best)], "sim-forms.png")
+    tilt = next(r for r in results if r["name"] == "split" and r["rot"] > 0)
+    fig_forms([("portrait slab, keys at bottom\n(best: %g x %g mm)" % (bp["px"], bp["py"]), bp),
+               ("split, tilted or fanned clusters\n(best: %g x %g mm, %g deg)" % (tilt["px"], tilt["py"], tilt["rot"]), tilt),
+               ("landscape, clusters joined, display on top\n(best: %g x %g mm)" % (bw["px"], bw["py"]), bw),
+               ("split, v0.1 (9.0 x 9.5 mm)", evaluate(base)), ("split, v0.2 (9.0 x 10.0 mm)", evaluate(v02))],
+              "sim-forms.png")
