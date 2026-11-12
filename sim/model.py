@@ -112,28 +112,35 @@ def _corners(xy, wide, px, py, ang):
 
 
 def split_layout(px, py, yc, rot=0.0, R0=None, bay=44.0, gap=1.5, H=70.0, thumb_shift=False, edge=3.0,
-                 stagger=None):
+                 stagger=None, left_tab=False):
     """화면을 가운데 두고 좌우로 나눈 배열.
-    stagger: 열마다의 세로 이동량 5개(안쪽 열부터, mm). 열 위치는 그대로 두고 행을 곡선으로 만든다."""
-    labs, xy, wide, ang = _half(px, py, rot, thumb_shift, R0)
-    if stagger is not None:
-        col = np.rint((xy[:, 0] + 2 * px) / px * 2) / 2            # 키 중심의 열 번호(넓은 키는 x.5 가능)
-        for k in range(len(labs)):
-            lo = int(math.floor(col[k] - (wide[k] - 1) / 2 + 1e-6))
-            hi = int(math.ceil(col[k] + (wide[k] - 1) / 2 - 1e-6))
-            xy[k, 1] += min(stagger[c] for c in range(lo, hi + 1))  # 넓은 키는 덮는 열 중 가장 낮은 쪽에 맞춤
-    cor = _corners(xy, wide, px, py, ang)
-    xy = xy + np.array([bay / 2 + gap - cor[..., 0].min(), yc])
-    cor = _corners(xy, wide, px, py, ang)
+    stagger: 열마다의 세로 이동량 5개(안쪽 열부터, mm). 열 위치는 그대로 두고 행을 곡선으로 만든다.
+    left_tab: 왼쪽 스페이스 바를 2칸으로 줄이고 그 옆에 TAB 키를 둔다."""
+    def half(extra_key):
+        labs, xy, wide, ang = _half(px, py, rot, extra_key, R0)
+        if stagger is not None:
+            col = np.rint((xy[:, 0] + 2 * px) / px * 2) / 2        # 키 중심의 열 번호(넓은 키는 x.5 가능)
+            for k in range(len(labs)):
+                lo = int(math.floor(col[k] - (wide[k] - 1) / 2 + 1e-6))
+                hi = int(math.ceil(col[k] + (wide[k] - 1) / 2 - 1e-6))
+                xy[k, 1] += min(stagger[c] for c in range(lo, hi + 1))  # 넓은 키는 덮는 열 중 가장 낮은 쪽에
+        cor = _corners(xy, wide, px, py, ang)
+        xy = xy + np.array([bay / 2 + gap - cor[..., 0].min(), yc])
+        return labs, xy, wide, ang, _corners(xy, wide, px, py, ang)
+
+    labs, xy, wide, ang, cor = half(thumb_shift)
     W = 2 * (cor[..., 0].max() + edge)
     fits = cor[..., 1].max() <= H / 2 - edge and cor[..., 1].min() >= -H / 2 + edge
-    ll, lxy = _mirror(labs, xy)
+    l_labs, l_xy, l_wide, l_ang, _ = half(thumb_shift or left_tab)
+    ll, lxy = _mirror(l_labs, l_xy)
+    if left_tab and not thumb_shift:
+        ll = ["TAB" if l == "SHIFT_L" else l for l in ll]
     lay = Layout("split", labs + ll, np.vstack([xy, lxy]),
-                 np.array([1] * len(labs) + [0] * len(ll)), np.concatenate([wide, wide]),
+                 np.array([1] * len(labs) + [0] * len(ll)), np.concatenate([wide, l_wide]),
                  px, py, W, H, dict(px=px, py=py, yc=yc, rot=rot, R0=R0, fits=bool(fits),
-                      stagger=None if stagger is None else [float(s) for s in stagger]),
+                      stagger=None if stagger is None else [float(s) for s in stagger], left_tab=left_tab),
                  "thumb" if thumb_shift else "shoulder")
-    lay.ang = np.concatenate([ang, -ang])
+    lay.ang = np.concatenate([ang, -l_ang])
     return lay
 
 

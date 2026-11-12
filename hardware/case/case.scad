@@ -1,6 +1,7 @@
 // DigitalPN — 기준 케이스 (파라메트릭, 곡선형, 3D 프린팅용)
 // 사용: openscad -D 'part="top"' -o top.stl case.scad
 // part: "assembly" | "top" | "bottom" | "keymat_l" | "keymat_r" | "shoulder"
+// style: "slim"(기본, 주머니용, 서포트 불필요) | "grip"(손잡이형, 서포트 필요)
 //
 // 모양의 원칙
 //  - 손에 닿는 모든 모서리를 둥글린다: 평면 모서리 R14, 뒷면 가장자리는 배 밑바닥처럼 6 mm에 걸쳐 말려 올라간다.
@@ -9,6 +10,7 @@
 include <dpn_core.scad>
 
 part = "assembly";
+style = "slim";
 
 // ── 사용자가 바꿔도 되는 값 ──────────────────────────
 process   = "fdm";  // "fdm": 45° 제한 곡면(서포트 불필요) | "sls": 완전한 원호 곡면(SLS·MJF·레진용)
@@ -31,6 +33,12 @@ grip      = true;   // 뒷면 손가락 자리에 미끄럼 방지 홈
 grip_depth = 0.6;   // 홈 깊이 (0.2 mm 적층 3겹)
 grip_w    = 1.2;    // 홈 폭 (바닥면 브리지가 되므로 1.5 이하)
 grip_pitch = 3.6;   // 홈 간격
+// style = "grip" 전용
+lump_h    = 9.0;    // 뒷면 손잡이 융기의 높이
+lump_len  = 54;     // 융기의 세로 길이
+lump_tilt = 10;     // 융기의 기울기(도). 아래쪽이 바깥으로 벌어져 손이 들어오는 각도에 맞는다
+rim_h     = 1.4;    // 앞면 테두리 턱 높이 (엄지 받침 + 주머니에서 키 보호)
+rim_w     = 2.4;    // 테두리 턱 폭
 
 // ── 유도 값 ─────────────────────────────────────────
 $fn = 64;
@@ -73,7 +81,7 @@ module loft(z0, z1, extra = 0, back = true) {
 }
 
 module key_holes_2d() {
-    for (s = [-1, 1]) for (c = caps())
+    for (s = [-1, 1]) for (c = caps(s))
         translate([col_x(s, c[0]), key_y(c[0], c[1], c[2])])
             rrect((c[2] - 1) * pitch_x + hole_w, hole_h, 1.2);
 }
@@ -86,6 +94,7 @@ module top_shell() {
                 translate([0, 0, -eps]) linear_extrude(gap_z + eps) outline(wall);
             }
             for (p = screw_pos) translate(p) cylinder(d = 4.6, h = gap_z + eps);   // PCB를 누르는 나사 기둥
+            if (style == "grip") front_rim();
         }
         translate([0, 0, gap_z - eps]) linear_extrude(face_t + 2 * eps) {
             rrect(disp_act_w + 2 * win_margin, disp_act_h + 2 * win_margin, 0.8);  // 디스플레이 창
@@ -95,6 +104,42 @@ module top_shell() {
             translate([0, 0, -eps]) cylinder(d = screw_d, h = top_z + 2 * eps);
             translate([0, 0, top_z - 0.8]) cylinder(d1 = screw_d, d2 = 4.2, h = 0.8 + eps);   // 접시머리 자리
         }
+    }
+}
+
+// 앞면 테두리 턱 (grip): 좌·우·위 세 변. 한 손으로 쥘 때 엄지 두덩이 걸리고, 키캡보다 높아 주머니에서 키를 가린다.
+// 아래 변은 엄지가 넘어 들어오는 길이라 비운다.
+module front_rim() {
+    intersection() {
+        difference() {     // 바깥 덩어리에서 안쪽 덩어리를 뺀 고리. 위로 갈수록 좁아진다
+            hull() {
+                translate([0, 0, top_z - eps]) linear_extrude(eps) outline(front_edge);
+                translate([0, 0, top_z + rim_h - eps]) linear_extrude(eps) outline(front_edge + 0.7);
+            }
+            hull() {
+                translate([0, 0, top_z - 1]) linear_extrude(eps) outline(front_edge + rim_w + 0.5);
+                translate([0, 0, top_z + rim_h]) linear_extrude(eps) outline(front_edge + rim_w - 0.7);
+            }
+        }
+        union() {   // 아래쪽으로 갈수록 낮아지며 사라진다
+            translate([-out_w, -out_h / 2 + 22, 0]) cube([2 * out_w, out_h, top_z + rim_h + 1]);
+            hull() {
+                translate([-out_w, -out_h / 2 + 22, 0]) cube([2 * out_w, eps, top_z + rim_h + 1]);
+                translate([-out_w, -out_h / 2 + 8, 0]) cube([2 * out_w, eps, top_z]);
+            }
+        }
+    }
+}
+
+// 뒷면 손잡이 융기 (grip): 양 끝에 세로로 놓인 둔덕. 바깥쪽은 완만해 손바닥을 채우고,
+// 안쪽은 가팔라 손가락 끝이 걸린다. 한 손으로 한쪽 끝만 쥐어도 기기가 처지는 힘을 손가락이 받는다.
+module grip_lump(s) {
+    intersection() {
+        translate([s * (out_w / 2 - 18), -1, bot_z]) rotate([0, 0, -s * lump_tilt]) hull() {
+            translate([s * 4, 0, 0]) scale([10, lump_len / 2, lump_h * 0.72]) sphere(1, $fn = 48);
+            translate([-s * 4.5, 0, 0]) scale([5.5, lump_len / 2 - 4, lump_h]) sphere(1, $fn = 48);
+        }
+        translate([0, 0, bot_z - lump_h - 1]) linear_extrude(lump_h + 1 + eps) outline(fdm_total);
     }
 }
 
@@ -130,27 +175,28 @@ module bottom_shell() {
             }
             for (p = screw_pos) translate([p[0], p[1], bot_z + floor_t - eps])   // PCB 받침 보스
                 cylinder(d = 5.6, h = back_depth + eps);
+            if (style == "grip") for (s = [-1, 1]) grip_lump(s);
         }
         for (p = screw_pos) translate([p[0], p[1], -pcb_t - insert_depth])
             cylinder(d = insert_d, h = insert_depth + eps);
         edge_cut(usb_x, usb_w, usb_h, usb_zc, -1);
         for (s = [-1, 1]) edge_cut(s * shoulder_x, shoulder_w, shoulder_h, shoulder_zc, 1);
-        if (grip) grip_grooves();
+        if (grip && style != "grip") grip_grooves();
     }
 }
 
 // 한쪽 키매트: 얇은 시트 위에 키캡이 솟아 있고, 아래에 스위치를 누르는 돌기가 있다.
 module keymat(side) {
     translate([0, 0, mat_z]) linear_extrude(mat_t) offset(-1.5) offset(1.5 + (pitch_x - cap_w) / 2 - 0.3)
-        for (c = caps()) translate([col_x(side, c[0]), key_y(c[0], c[1], c[2])])
+        for (c = caps(side)) translate([col_x(side, c[0]), key_y(c[0], c[1], c[2])])
             square([(c[2] - 1) * pitch_x + cap_w, cap_h], center = true);
-    for (c = caps()) translate([col_x(side, c[0]), key_y(c[0], c[1], c[2]), mat_z + mat_t - eps])
+    for (c = caps(side)) translate([col_x(side, c[0]), key_y(c[0], c[1], c[2]), mat_z + mat_t - eps])
         hull() {      // 윗면을 조금 좁혀 볼록한 느낌을 준다
             linear_extrude(eps) rrect((c[2] - 1) * pitch_x + cap_w, cap_h, 1.0);
             translate([0, 0, top_z + cap_proud - mat_z - mat_t - 0.6])
                 linear_extrude(0.6) rrect((c[2] - 1) * pitch_x + cap_w - 1.2, cap_h - 1.2, 1.4);
         }
-    for (k = switches()) translate([col_x(side, k[0]), k[1], sw_h])
+    for (k = switches(side)) translate([col_x(side, k[0]), k[1], sw_h])
         cylinder(d = nub_d, h = mat_z - sw_h + eps);
 }
 
@@ -171,7 +217,7 @@ module assembly() {
 }
 
 if (part == "top") rotate([180, 0, 0]) translate([0, 0, -top_z]) top_shell();   // 앞면을 바닥에 붙여 출력
-else if (part == "bottom") translate([0, 0, -bot_z]) bottom_shell();           // 뒷면을 바닥에 붙여 출력
+else if (part == "bottom") translate([0, 0, -bot_z + (style == "grip" ? lump_h : 0)]) bottom_shell();   // 뒷면을 바닥에
 else if (part == "keymat_l") rotate([180, 0, 0]) translate([0, 0, -(top_z + cap_proud)]) keymat(-1);
 else if (part == "keymat_r") rotate([180, 0, 0]) translate([0, 0, -(top_z + cap_proud)]) keymat(1);
 else if (part == "shoulder") translate([0, 0, (wall + 1.6) / 2 + 0.4]) rotate([90, 0, 0]) shoulder_cap();   // 넓은 턱을 바닥에

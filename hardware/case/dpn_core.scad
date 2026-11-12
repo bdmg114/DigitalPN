@@ -1,6 +1,7 @@
-// DigitalPN — Core Interface v0.4
+// DigitalPN — Core Interface v0.5
 // v0.2: 행 간격 9.5→10.0, 키 묶음을 10 mm 아래로.  v0.3: 열별 세로 이동(곡선 행), 아래 가운데 나사를 위로.
 // v0.4: PCB 모서리 R6→R12, 모서리 나사를 안쪽으로 (둥근 케이스 모서리를 위해).
+// v0.5: 왼쪽 스페이스 바를 2칸으로 줄이고 TAB 키 추가 (좌우 비대칭).
 // 근거: docs/simulation.md
 // 케이스가 지켜야 하는 "코어(PCB 조립체)"의 치수 계약. 단위 mm.
 // 원점: PCB 중심, PCB 앞면(키/디스플레이 면)이 z=0, +z가 사용자 쪽, +y가 위(어깨 버튼 쪽).
@@ -35,16 +36,19 @@ function row_y(r) = key_y0 - r * pitch_y;                  // r: 0=윗행 (이�
 function key_y(i, r, w = 1) = row_y(r)
     + min([for (c = [floor(i - (w - 1) / 2 + 0.001) : ceil(i + (w - 1) / 2 - 0.001)]) col_dy[c]]);
 
-// 4행(r=3)은 안쪽 3칸이 스페이스 바(스위치 2개 병렬), 바깥 2칸은 단독 키
-space_cols = [0, 2];                 // 스페이스 바 아래 스위치가 놓이는 열
-// 키캡 목록: [열 중심 i(실수), 행 r, 폭(칸 수)]
-function caps() = concat(
+// 4행(r=3). 오른쪽: 안쪽 3칸이 스페이스 바, 바깥 2칸은 단독 키(◀ ▶).
+//          왼쪽: 안쪽 2칸이 스페이스 바, 그 옆이 TAB, 바깥 2칸은 단독 키(한/영, 메뉴).
+// 스페이스 바 아래에는 스위치 2개를 병렬로 둔다.
+// 키캡 목록: [열 중심 i(실수), 행 r, 폭(칸 수)]   side: -1 왼쪽, +1 오른쪽
+function caps(side = 1) = concat(
     [for (r = [0:2]) for (i = [0:cols-1]) [i, r, 1]],
-    [[1, 3, 3], [3, 3, 1], [4, 3, 1]]);
+    side > 0 ? [[1, 3, 3], [3, 3, 1], [4, 3, 1]]
+             : [[0.5, 3, 2], [2, 3, 1], [3, 3, 1], [4, 3, 1]]);
 // 스위치 목록: [i, y]
-function switches() = concat(
+function switches(side = 1) = concat(
     [for (r = [0:2]) for (i = [0:cols-1]) [i, key_y(i, r)]],
-    [for (i = space_cols) [i, key_y(1, 3, 3)]], [[3, key_y(3, 3)], [4, key_y(4, 3)]]);
+    side > 0 ? [[0, key_y(1, 3, 3)], [2, key_y(1, 3, 3)], [3, key_y(3, 3)], [4, key_y(4, 3)]]
+             : [[0, key_y(0.5, 3, 2)], [1, key_y(0.5, 3, 2)], [2, key_y(2, 3)], [3, key_y(3, 3)], [4, key_y(4, 3)]]);
 
 // ── 가장자리 부품 (PCB 뒷면 실장) ────────────────────
 usb_x = 0;           usb_w = 9.4;   usb_h = 3.6;   usb_zc = -(pcb_t + 1.6);  // 아래 모서리, USB-C
@@ -63,7 +67,7 @@ module core_mock() {
         difference() { rrect(pcb_w, pcb_h, pcb_r); for (p = screw_pos) translate(p) circle(d = screw_d, $fn = 24); }
     color("silver") linear_extrude(disp_mod_t) square([disp_mod_w, disp_mod_h], center = true);
     color("white") translate([0, 0, disp_mod_t]) linear_extrude(0.02) square([disp_act_w, disp_act_h], center = true);
-    color("dimgray") for (s = [-1, 1]) for (k = switches())
+    color("dimgray") for (s = [-1, 1]) for (k = switches(s))
         translate([col_x(s, k[0]), k[1], 0]) linear_extrude(sw_h) square([4.2, 3.2], center = true);
     color("steelblue") translate([batt_pos[0], batt_pos[1], -pcb_t - batt[2] - 0.3])
         linear_extrude(batt[2]) square([batt[0], batt[1]], center = true);

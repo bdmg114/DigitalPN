@@ -26,7 +26,7 @@ plt.rcParams["font.family"] = font_manager.FontProperties(fname=FONT).get_name()
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 BLUE, ORANGE, SKIN = "#2a78d6", "#eb6834", "#c98f6b"
 JAMO = dict(zip("qwertyuiopasdfghjklzxcvbnm", "ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔㅁㄴㅇㄹㅎㅗㅓㅏㅣㅋㅌㅊㅍㅠㅜㅡ"))
-SPECIAL = {"BS": "지움", "ENT": "엔터", "LEFT": "◀", "RIGHT": "▶", "LANG": "한/영", "MENU": "메뉴", ",": ",", ".": "."}
+SPECIAL = {"BS": "지움", "ENT": "엔터", "LEFT": "◀", "RIGHT": "▶", "LANG": "한/영", "MENU": "메뉴", "TAB": "탭", ",": ",", ".": "."}
 CHO_COMPAT = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"
 SLOWMO = 0.35
 FPS = 30
@@ -160,8 +160,9 @@ LAYOUTS = {
     "v0.1": lambda: split_layout(9.0, 9.5, 4.75),
     "v0.2": lambda: split_layout(9.0, 10.0, -6.0),
     "v0.3": lambda: split_layout(9.0, 10.0, -6.0, stagger=(-5, -5, -1, 3, 4)),
+    "v0.5": lambda: split_layout(9.0, 10.0, -6.0, stagger=(-5, -5, -1, 3, 4), left_tab=True),
 }
-DESC = {"v0.1": "평면 격자, 키 위쪽", "v0.2": "평면 격자, 키 아래쪽", "v0.3": "곡선 배열"}
+DESC = {"v0.1": "평면 격자, 키 위쪽", "v0.2": "평면 격자, 키 아래쪽", "v0.3": "곡선 배열", "v0.5": "곡선 배열 + TAB"}
 KEY_FC = "#dfe7f2"
 
 

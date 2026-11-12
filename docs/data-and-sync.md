@@ -6,16 +6,16 @@
 정식 정의는 [`schema/item.schema.json`](../schema/item.schema.json), 예시는 [`schema/examples/sample.jsonl`](../schema/examples/sample.jsonl).
 
 ```json
-{"v":1,"seq":42,"id":"01M73Z7P18V37E3S3E28JT97KB","note":"01M73Z7D80M9S346Q3D25VT4F5","ord":2048,"kind":"text","text":"키 간격은 9mm로 시작하고 시제품에서 오타율을 재서 조정한다. #하드웨어","tags":["하드웨어"],"rev":1,"created":"2026-11-11T09:13:29+09:00","updated":"2026-11-11T09:13:29+09:00","clock":"synced","dev":"dpn-7f3a2c"}
+{"v":2,"seq":43,"id":"01M73Z7VWRXHT5GMEJ146S6JR4","parent":"01M73Z7P180432CF1XMWCEJZ05","ord":1024,"kind":"text","text":"키 간격은 9mm로 시작하고 시제품에서 오타율을 잰다. #하드웨어","tags":["하드웨어"],"rev":1,"created":"2026-11-11T09:13:35+09:00","updated":"2026-11-11T09:13:35+09:00","clock":"synced","dev":"dpn-7f3a2c"}
 ```
 
 | 필드 | 설명 |
 |---|---|
-| `v` | 스키마 버전 (1) |
+| `v` | 스키마 버전 (2) |
 | `seq` | 기기 저널 일련번호. 기기 안에서 단조 증가. 전송 커서로 쓴다. |
-| `id` | 항목 ID (ULID). 수정·삭제해도 유지된다. |
-| `note` | 속한 메모의 ID. 메모의 첫 항목 `id`와 같다. |
-| `ord` | 메모 안 순서. 1024 간격으로 매겨 사이에 끼워 넣을 수 있다. |
+| `id` | 항목 ID (ULID). 수정·이동·삭제해도 유지된다. |
+| `parent` | 부모 항목의 `id`. 최상위 항목은 `null`. |
+| `ord` | 같은 부모를 가진 형제들 사이의 순서. 1024 간격으로 매겨 사이에 끼워 넣을 수 있다. |
 | `kind` | `text` 문단 / `task` 할 일 / `head` 제목 |
 | `text` | 본문 |
 | `done` | `task`일 때 완료 여부 |
@@ -26,14 +26,32 @@
 | `clock` | `unsynced`면 시계가 맞지 않은 상태에서 쓴 것. 순서는 `seq`를 믿는다. |
 | `dev` | 기기 ID |
 
+### 부모-자식 구조
+
+메모라는 별도 단위는 없다. 모든 것이 항목이고, 항목은 `parent`로 이어진 트리를 이룬다. 종이 노트에 쓰듯 큰 줄 아래에 작은 줄을 달아 내려간다.
+
+```
+타자기 프로젝트 회의                parent: null
+├─ 키 배열                          parent: (회의)
+│  └─ 키 간격은 9mm로 시작하고 …     parent: (키 배열)
+├─ 들여쓰기용 탭 키를 …              parent: (회의)
+└─ 할 일                            parent: (회의)
+   └─ [x] 메모리 LCD 샘플 주문       parent: (할 일)
+```
+
+- **들여쓰기·내어쓰기는 그 항목 한 줄만 다시 쓴다.** `parent`와 `ord`가 바뀐 새 리비전이 하나 추가될 뿐이고, 딸린 하위 항목들은 부모의 `id`를 가리키고 있으므로 손대지 않아도 함께 움직인다.
+- **삭제는 하위 항목까지 지운다.** 기기는 지워지는 항목마다 `deleted: true`인 줄을 쓴다. 받는 쪽은 부모 없는 항목을 따로 처리할 필요가 없다.
+- 깊이 제한은 8단계다(화면 폭 때문).
+- 받는 쪽에서 `parent`가 가리키는 항목을 아직 받지 못했거나 삭제된 것으로 알고 있으면 그 항목을 최상위로 취급한다.
+
 ### AI에 넘기기 좋게 한 점
 
-- **항목이 독립적이다.** 한 줄만 떼어 놓아도 어느 메모의 몇 번째인지, 언제 썼는지, 종류가 무엇인지 알 수 있다. 그대로 검색·임베딩 단위로 쓴다.
-- **구조가 평평하다.** 중첩이 없고 필드 이름이 뜻 그대로다. 긴 문서를 통째로 넘기지 않고 필요한 줄만 고를 수 있다.
-- **메모는 저장하지 않고 유도한다.** `note`가 같은 항목을 `ord` 순으로 모으면 메모다. 메모 단위 요약이 필요하면 받는 쪽에서 묶는다.
-- **이력이 남는다.** 수정은 덮어쓰지 않고 새 줄로 쌓인다. 최신 상태만 필요하면 `id`별로 `rev`가 가장 큰 줄을 고르고 `deleted`인 것을 뺀다.
+- **구조가 평평하다.** 저장은 중첩 없는 한 줄씩이고, 관계는 `parent` 하나로만 표현한다. 긴 문서를 통째로 넘기지 않고 필요한 줄만 고를 수 있다.
+- **맥락을 따라 올라갈 수 있다.** 한 항목만 검색되어도 `parent`를 따라 올라가면 "어느 주제의 어느 소제목 아래 줄인지"를 붙여 줄 수 있다. 임베딩할 때 조상 항목의 본문을 앞에 붙이면 짧은 줄도 뜻이 살아난다.
+- **묶음은 저장하지 않고 유도한다.** 하위 트리 하나가 곧 한 덩어리 메모다. 요약이나 내보내기 단위는 받는 쪽에서 원하는 깊이로 자른다.
+- **이력이 남는다.** 수정과 이동은 덮어쓰지 않고 새 줄로 쌓인다.
 
-최신 상태를 얻는 규칙:
+최신 상태의 트리를 얻는 규칙:
 
 ```python
 latest = {}
@@ -41,8 +59,24 @@ for line in lines:
     r = json.loads(line)
     if r["id"] not in latest or r["rev"] > latest[r["id"]]["rev"]:
         latest[r["id"]] = r
-items = sorted((r for r in latest.values() if not r.get("deleted")),
-               key=lambda r: (r["note"], r["ord"]))
+live = {i: r for i, r in latest.items() if not r.get("deleted")}
+
+children = {}
+for r in live.values():
+    parent = r["parent"] if r["parent"] in live else None   # 부모를 모르면 최상위로
+    children.setdefault(parent, []).append(r)
+
+def walk(parent=None, depth=0):
+    for r in sorted(children.get(parent, []), key=lambda r: r["ord"]):
+        yield depth, r
+        yield from walk(r["id"], depth + 1)
+
+def context(r):                 # 조상들의 본문 (검색 결과에 맥락을 붙일 때)
+    out = []
+    while r["parent"] in live:
+        r = live[r["parent"]]
+        out.insert(0, r["text"])
+    return out
 ```
 
 ## 2. 전송 모델
