@@ -34,9 +34,11 @@ grip_depth = 0.6;   // 홈 깊이 (0.2 mm 적층 3겹)
 grip_w    = 1.2;    // 홈 폭 (바닥면 브리지가 되므로 1.5 이하)
 grip_pitch = 3.6;   // 홈 간격
 // style = "grip" 전용
-lump_h    = 9.0;    // 뒷면 손잡이 융기의 높이
-lump_len  = 54;     // 융기의 세로 길이
-lump_tilt = 10;     // 융기의 기울기(도). 아래쪽이 바깥으로 벌어져 손이 들어오는 각도에 맞는다
+grip_variant = "B";   // 그립 시뮬레이션(sim/grip.py)으로 고른 후보: "A" 낮음 | "B" 중간 | "C" 높음 | "custom"
+// custom 일 때 쓰는 값 [높이, 마루 위치(옆 모서리에서), 안쪽 비탈 폭, 손가락 골 깊이 비율]
+lump_custom = [7, 52, 15, 0];
+lump_len  = 62;     // 융기의 세로 길이
+lump_fade = 22;     // 위아래 끝이 본체로 사그라드는 길이
 rim_h     = 1.4;    // 앞면 테두리 턱 높이 (엄지 받침 + 주머니에서 키 보호)
 rim_w     = 2.4;    // 테두리 턱 폭
 
@@ -131,16 +133,37 @@ module front_rim() {
     }
 }
 
-// 뒷면 손잡이 융기 (grip): 양 끝에 세로로 놓인 둔덕. 바깥쪽은 완만해 손바닥을 채우고,
-// 안쪽은 가팔라 손가락 끝이 걸린다. 한 손으로 한쪽 끝만 쥐어도 기기가 처지는 힘을 손가락이 받는다.
+// 뒷면 손잡이 융기 (grip): 높이장(heightfield)으로 만든 한 덩어리 곡면.
+// 가장자리 곡면이 끝나는 곳에서 기울기 0으로 솟기 시작해 마루까지 완만히 오르고(손바닥을 채움),
+// 마루 안쪽은 짧은 비탈로 내려와 다시 기울기 0으로 뒷면에 닿는다(손가락 끝이 걸림).
+// 모든 경계가 접선으로 이어지므로 본체와의 사이에 꺾인 선이 없다. sim/grip.py 의 height()와 같은 식.
+LUMPS = [["A", [5, 52, 15, 0]], ["B", [7, 52, 15, 0]], ["C", [11, 52, 15, 0]]];
+lump = grip_variant == "custom" ? lump_custom : LUMPS[search([grip_variant], LUMPS)[0]][1];
+function sm(t) = let(u = min(max(t, 0), 1)) u * u * (3 - 2 * u);
+function lump_height(a, y) = lump[0]
+    * (a <= lump[1] ? sm((a - fdm_total) / (lump[1] - fdm_total)) : 1 - sm((a - lump[1]) / lump[2]))
+    * (1 - sm((abs(y + 1) - (lump_len / 2 - lump_fade)) / lump_fade))
+    * (1 - lump[3] * (0.5 + 0.5 * cos(360 * (y + 1 - 9.5) / 19)));
+
 module grip_lump(s) {
-    intersection() {
-        translate([s * (out_w / 2 - 18), -1, bot_z]) rotate([0, 0, -s * lump_tilt]) hull() {
-            translate([s * 4, 0, 0]) scale([10, lump_len / 2, lump_h * 0.72]) sphere(1, $fn = 48);
-            translate([-s * 4.5, 0, 0]) scale([5.5, lump_len / 2 - 4, lump_h]) sphere(1, $fn = 48);
-        }
-        translate([0, 0, bot_z - lump_h - 1]) linear_extrude(lump_h + 1 + eps) outline(fdm_total);
-    }
+    na = 36;  ny = 64;
+    a1 = lump[1] + lump[2];
+    function pa(i) = fdm_total + (a1 - fdm_total) * i / (na - 1);
+    function py(j) = -1 - lump_len / 2 + lump_len * j / (ny - 1);
+    N = na * ny;
+    pts = concat(
+        [for (i = [0 : na - 1]) for (j = [0 : ny - 1]) [out_w / 2 - pa(i), py(j), bot_z - lump_height(pa(i), py(j))]],
+        [for (i = [0 : na - 1]) for (j = [0 : ny - 1]) [out_w / 2 - pa(i), py(j), bot_z + 0.3]]);
+    function t(i, j) = i * ny + j;
+    function b(i, j) = N + i * ny + j;
+    faces = concat(
+        [for (i = [0 : na - 2]) for (j = [0 : ny - 2]) [t(i, j), t(i, j + 1), t(i + 1, j + 1), t(i + 1, j)]],
+        [for (i = [0 : na - 2]) for (j = [0 : ny - 2]) [b(i, j), b(i + 1, j), b(i + 1, j + 1), b(i, j + 1)]],
+        [for (j = [0 : ny - 2]) [t(0, j), b(0, j), b(0, j + 1), t(0, j + 1)]],
+        [for (j = [0 : ny - 2]) [t(na - 1, j), t(na - 1, j + 1), b(na - 1, j + 1), b(na - 1, j)]],
+        [for (i = [0 : na - 2]) [t(i, 0), t(i + 1, 0), b(i + 1, 0), b(i, 0)]],
+        [for (i = [0 : na - 2]) [t(i, ny - 1), b(i, ny - 1), b(i + 1, ny - 1), t(i + 1, ny - 1)]]);
+    mirror([s > 0 ? 0 : 1, 0, 0]) polyhedron(pts, faces, convexity = 6);
 }
 
 module edge_cut(x, w, h, zc, ydir) {
@@ -217,7 +240,8 @@ module assembly() {
 }
 
 if (part == "top") rotate([180, 0, 0]) translate([0, 0, -top_z]) top_shell();   // 앞면을 바닥에 붙여 출력
-else if (part == "bottom") translate([0, 0, -bot_z + (style == "grip" ? lump_h : 0)]) bottom_shell();   // 뒷면을 바닥에
+else if (part == "bottom" && style == "grip") rotate([180, 0, 0]) bottom_shell();   // 열린 쪽을 바닥에: 손에 닿는 곡면이 위로 와 깨끗하게 나온다
+else if (part == "bottom") translate([0, 0, -bot_z]) bottom_shell();           // 뒷면을 바닥에
 else if (part == "keymat_l") rotate([180, 0, 0]) translate([0, 0, -(top_z + cap_proud)]) keymat(-1);
 else if (part == "keymat_r") rotate([180, 0, 0]) translate([0, 0, -(top_z + cap_proud)]) keymat(1);
 else if (part == "shoulder") translate([0, 0, (wall + 1.6) / 2 + 0.4]) rotate([90, 0, 0]) shoulder_cap();   // 넓은 턱을 바닥에
