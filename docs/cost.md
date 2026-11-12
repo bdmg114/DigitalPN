@@ -89,9 +89,35 @@ STL 부피는 `hardware/case/stl/`의 파일에서 계산했다: 앞판 8.58, �
 
 하드웨어 소매가는 보통 제조 원가의 2.5~4배로 잡는다(유통 마진, 반품, 지원, 개발비 회수). 1,000대 원가 6.4만 원이면 소매 16~25만 원, 10,000대 원가 4.7만 원이면 12~19만 원 수준이다.
 
+## 디스플레이 원가 절감안
+
+지금 디스플레이(Sharp LS027B7DH01A, 1,000대 기준 $18)는 원가의 약 40%다. 후보는 모두 반사형(백라이트 없음), SPI, 상시 표시가 되는 패널이다. 전자종이는 [hardware.md](hardware.md) 6절의 이유(부분 갱신 수백 ms)로 뺐다.
+
+| 안 | 패널 | 해상도 / 표시 영역 | 16 px 글꼴 글자 수 | 단가 근거 | 1,000대 대당 원가 | 바뀌는 것 |
+|---|---|---|---|---|---|---|
+| 현재 | Sharp LS027B7DH01A 2.7" | 240 × 400 / 35.3 × 58.8 mm | 15자 × 23줄 | DigiKey 400개 $17.85 | $47.4 (6.4만 원) | — |
+| A | 같은 패널, 구매처만 바꿈 | 같음 | 같음 | Alibaba 중국 공급사 1,000~4,999개 $15.60 (공인 유통 아님) | $44.9 (6.1만 원) | 없음. 정품 여부·보증 위험 |
+| B | Sharp LS018B7DH02 1.8" 메모리 LCD | 약 230 × 303 (자료마다 다름) | 14자 × 17줄 | DigiKey 960개 €11.4~12.7, 재고 없음(주문 생산) | 약 $42 (5.7만 원) | 케이스 창 크기. 구동 방식은 같은 Sharp 프로토콜이라 펌웨어는 해상도만 바꿈 |
+| **C** | **ST7305 반사형 TFT 2.9"** (Good Display GDTL029T51, Midas MDTR0290A-SPI) | 168 × 384 / 30.5 × 68.3 mm | 10자 × 22줄 | Good Display 1개 $6.89, Midas 100개 $9.97 | **약 $35 (4.8만 원)** | **본체 세로 약 +14 mm**, PCB·케이스 다시 그림, 디스플레이 드라이버 새로 작성 |
+| D | ST7305 반사형 TFT 2.13" (Midas MDTR0213A-SPI 등) | 122 × 250 / 26.5 × 51.6 mm | 7자 × 14줄 (12 px 글꼴이면 10자 × 19줄) | Midas 500개 $6.08 | 약 $32 (4.4만 원) | 케이스 창 크기, 드라이버 새로 작성 |
+
+계산 방법: 1,000대 내역에서 디스플레이 단가만 바꾸고 불량·운송 여유 5%를 다시 곱했다. C와 D는 1,000개 단가를 공개 자료에서 찾지 못해 소량 단가에서 추정했다(C $5.5, D $4). ST7305는 3.3 V로 동작해 5 V 승압 회로($0.3)가 빠진다. C는 케이스가 커져 MJF 비용이 약 $1.3 늘어나는 것까지 넣었다.
+
+### 판단
+
+- **D는 권하지 않는다.** 가장 싸지만 한 줄에 7자가 들어간다. 8단계 들여쓰기를 하면 본문 폭이 3자로 줄어 항목 트리 화면이 성립하지 않는다.
+- **C가 절감 폭이 가장 크다(대당 약 1.6만 원, 25%).** 대가는 세 가지다.
+  1. 표시 영역이 68 mm로 지금 화면 자리(64 mm)보다 길다. 모듈 외곽은 데이터시트로 확인해야 하지만 본체가 70 → 약 84 mm로 커질 것으로 본다. 가로로 쥐는 기기의 세로가 스마트폰 폭(약 72 mm)보다 커져 바지 주머니 수납이 나빠지고, 키 묶음 위치도 [타자 시뮬레이션](simulation.md)으로 다시 확인해야 한다.
+  2. 글자 수가 15자에서 10자로 준다. 화소가 0.17 mm로 지금(0.147 mm)보다 커서 같은 16 px 글자가 실제로는 15% 크게 보인다.
+  3. 화소가 상태를 기억하는 메모리 LCD가 아니다. 저주파 모드(0.25~8 Hz)로 상시 표시 전력을 줄이는 방식이다. 같은 계열 ST7301의 자료로는 저전력 모드 약 25 µA, 일반 주사 약 300 µA이며, ST7305의 실제 값은 데이터시트로 확인해야 한다. 이 값이면 하루 소모가 1 mAh 안쪽으로 늘어 배터리 수명에는 거의 영향이 없다.
+- **B는 크기를 지키면서 대당 약 7천 원(11%)을 줄인다.** 케이스 바깥 치수와 PCB 외곽은 그대로 두고 창과 디스플레이 자리만 바꾸면 된다. 다만 재고 없이 주문 생산이라 리드타임 확인이 먼저다.
+- **A는 설계를 바꾸지 않지만 절감이 작고(약 3천 원) 비공인 유통 위험이 있다.** 수천 대 규모가 되면 Sharp 공인 대리점에 직접 견적을 받는 쪽이 낫다.
+
+**추천**: 크기를 지키는 게 우선이면 B, 원가가 우선이고 본체가 커져도 되면 C. 어느 쪽이든 검증 계획 0단계(타건 목업)에서 화면 자리를 바꿔 끼울 수 있게 두고, 실제 글자 수로 메모를 써 보고 정한다. C는 모듈 외곽 치수를 데이터시트로 확인하기 전까지 케이스를 고치지 않는다.
+
 ## 원가를 줄이는 방향
 
-1. **디스플레이**: 원가의 약 40~55%. 대량 구매 협상, 또는 같은 자리에 들어가는 더 싼 반사형 패널 검토. 전자종이는 [hardware.md](hardware.md) 6절의 이유로 권하지 않는다.
+1. **디스플레이**: 원가의 약 40%. 위 [디스플레이 원가 절감안](#디스플레이-원가-절감안) 참조.
 2. **전원 IC 통합**: 충전·벅·게이지 3칩($2.25)을 PMIC 하나로 묶거나, 게이지를 빼고 ADC 전압 추정으로 바꾸면 $0.6~1 줄어든다(정확도는 떨어진다).
 3. **단면 조립**: 스위치는 앞면, 나머지는 뒷면이라 양면 조립이다. 뒷면 부품을 줄이거나 스위치만 수삽/리플로 한 번으로 묶으면 조립비가 준다.
 4. **케이스**: 1,000대까지는 MJF, 수천 대 이상부터 사출. 손잡이형은 부피가 커서 MJF 단가가 오른다.
@@ -115,4 +141,5 @@ STL 부피는 `hardware/case/stl/`의 파일에서 계산했다: 앞판 8.58, �
 - JLCPCB 조립비 — [가격 안내](https://jlcpcb.com/help/article/pcb-assembly-price), [FAQ](https://jlcpcb.com/help/article/98-pcb-assembly-faqs)
 - JLC3DP MJF — [가격 인하 공지](https://jlc3dp.com/blog/drastic-material-price-cuts-and-adjusted-post-processing-service-fees), [2026년 7월 공지](https://jlc3dp.com/news/materials-finishing-pricing-update-july2026)
 - 사출 금형 — [DEV Community](https://dev.to/china-sourcing-agents/injection-mold-tooling-costs-for-electronics-enclosures-16dl), [Haizol](https://www.haizol.com/blog/low-volume-injection-molding)
+- 디스플레이 대체안 — [Alibaba LS027B7DH01A](https://www.alibaba.co.uk/product-detail/LS027B7DH01A-Original-2-7-Inch-LCD_1601529829368.html), [DigiKey LS018B7DH02](https://www.digikey.ie/en/products/detail/sharp-microelectronics/LS018B7DH02/25953409), [Good Display GDTL029T51](https://buyepaper.com/products/gdtl029t51), [DigiKey MDTR0290A-SPI](https://www.digikey.com.mx/en/products/detail/midas-displays/MDTR0290A-SPI/25588717), [DigiKey MDTR0213A-SPI](https://www.digikey.com.mx/en/products/detail/midas-displays/MDTR0213A-SPI/25588716), [ST7305 데이터시트](https://files.waveshare.com/wiki/common/ST_7305_V0_2.pdf), [Zephyr ST7305 바인딩](https://docs.zephyrproject.org/latest/build/dts/api/bindings/display/sitronix,st7305.html), [ST7301 저전력 수치](https://www.orientdisplay.com/wp-content/uploads/2022/08/ST7301.pdf)
 - 환율 — [FRED DEXKOUS](https://fred.stlouisfed.org/graph?g=7sEa)
