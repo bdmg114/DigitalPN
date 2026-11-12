@@ -30,6 +30,7 @@
 - [docs/data-and-sync.md](docs/data-and-sync.md) — JSON 레코드 형식과 BLE / Wi-Fi / USB 전송 규약
 - [docs/case.md](docs/case.md) — 코어 인터페이스와 케이스 커스텀 방법
 - [docs/simulation.md](docs/simulation.md) — 엄지 관절 모델 타자 시뮬레이션: 방법, 결과, 한계
+- [docs/cost.md](docs/cost.md) — 생산 단가 추정 (시제품 / 1,000대 / 10,000대)
 
 ## 저장소 구성
 
