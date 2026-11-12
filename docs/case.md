@@ -109,6 +109,8 @@ done
 
 ![그립 시뮬레이션](img/grip-sim.png)
 
+영상: [`docs/video/grip-medium.mp4`](video/grip-medium.mp4)(보통 손, 마찰 0.3), [`grip-medium-slippery.mp4`](video/grip-medium-slippery.mp4)(미끄러운 손, 마찰 0.15). 기기를 드는 자세를 바꿔 가며 접촉점마다 필요한 힘을 화살표로 보여 준다(`python3 sim/grip_animate.py`).
+
 **결과**
 
 1. **필요한 힘 자체는 융기로 줄지 않는다.** 기기가 가벼워서(약 95 g) 최악의 자세에서도 누르는 힘의 합이 4~10 N이고, 후보들은 얇은 기본형보다 2~8% 더 든다(융기의 무게와 기울어진 접촉면 때문). 왼쪽 그림.
