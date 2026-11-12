@@ -28,7 +28,7 @@
 - [docs/input.md](docs/input.md) — 키 배열, 레이어, 한글 조합, 입력 지연 설계
 - [docs/firmware.md](docs/firmware.md) — 펌웨어 구조, 저장, 화면, 전원 관리
 - [docs/data-and-sync.md](docs/data-and-sync.md) — JSON 레코드 형식과 BLE / Wi-Fi / USB 전송 규약
-- [docs/case.md](docs/case.md) — 코어 인터페이스와 케이스 커스텀 방법
+- [docs/case.md](docs/case.md) — 코어 인터페이스, 케이스 두 종류(얇은 형, 손잡이형), 한 손 쥐기 시뮬레이션, 출력 방법
 - [docs/simulation.md](docs/simulation.md) — 엄지 관절 모델 타자 시뮬레이션: 방법, 결과, 한계
 
 ## 저장소 구성
