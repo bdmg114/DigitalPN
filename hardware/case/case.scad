@@ -174,7 +174,7 @@ if (part == "top") rotate([180, 0, 0]) translate([0, 0, -top_z]) top_shell();   
 else if (part == "bottom") translate([0, 0, -bot_z]) bottom_shell();           // 뒷면을 바닥에 붙여 출력
 else if (part == "keymat_l") rotate([180, 0, 0]) translate([0, 0, -(top_z + cap_proud)]) keymat(-1);
 else if (part == "keymat_r") rotate([180, 0, 0]) translate([0, 0, -(top_z + cap_proud)]) keymat(1);
-else if (part == "shoulder") shoulder_cap();
+else if (part == "shoulder") translate([0, 0, (wall + 1.6) / 2 + 0.4]) rotate([90, 0, 0]) shoulder_cap();   // 넓은 턱을 바닥에
 else assembly();
 
 echo(str("외형(mm): ", out_w, " x ", out_h, " x ", top_z - bot_z, " (+키캡 ", cap_proud, "), 가장자리 두께 ",
