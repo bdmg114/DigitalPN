@@ -188,7 +188,10 @@ module bottom_shell() {
             }
             for (p = screw_pos) translate([p[0], p[1], bot_z + floor_t - eps])   // PCB 받침 보스
                 cylinder(d = 5.6, h = back_depth + eps);
-            if (style == "grip") for (s = [-1, 1]) grip_lump(s);
+            if (style == "grip") intersection() {     // 사각 격자가 둥근 모서리 밖으로 삐져나오지 않게 뒷면 평면 외곽으로 자른다
+                for (s = [-1, 1]) grip_lump(s);
+                translate([0, 0, bot_z - 20]) linear_extrude(20.5) outline(fdm_total);
+            }
         }
         for (p = screw_pos) translate([p[0], p[1], -pcb_t - insert_depth])
             cylinder(d = insert_d, h = insert_depth + eps);

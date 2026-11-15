@@ -19,3 +19,12 @@
 손잡이형은 `dpn-top.stl`·`dpn-bottom.stl` 대신 `dpn-grip-top.stl`과 `dpn-gripG4/G7/G10-bottom.stl` 중 하나를 쓰고 (뒷판은 열린 쪽이 바닥을 향하게 놓여 있다), 키매트와 어깨 캡은 같은 것을 쓴다. 키매트는 좌우가 다르다(왼쪽에 탭 키).
 
 손잡이 곡면은 쥐기 시뮬레이션이 생성한 것이다(`sim/grip_gen.py`, `docs/case.md` 3절).
+
+## mockup/ — 목업용 질감 뒷판
+
+| 파일 | 대신 쓰는 것 | 크기 (mm) |
+|---|---|---|
+| `mockup/dpn-gripG7-bottom-textured.stl` | `dpn-gripG7-bottom.stl` | 142.7 × 70.7 × 11.9 |
+| `mockup/dpn-bottom-textured.stl` | `dpn-bottom.stl` | 142.7 × 70.7 × 8.6 |
+
+손에 닿는 바깥 면에 높이 0.4 mm의 무작위 돌기를 입힌 것이다(`texture.py`). 두 파일 모두 열린 쪽이 바닥을 향하게 놓여 있고 안쪽 바닥면 아래에 서포트가 필요하다. 앞판·키매트·어깨 캡은 기존 파일을 쓴다.
