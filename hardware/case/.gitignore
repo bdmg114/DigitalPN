@@ -1,3 +1,2 @@
 *.stl
 !stl/*.stl
-!stl/mockup/*.stl
