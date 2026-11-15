@@ -10,10 +10,12 @@
 | `dpn-shoulder.stl` | 2 | PLA / PETG | 12 × 4.6 × 3.7 |
 | `dpn-bottom-sls.stl` | (대체) | SLS · MJF · 레진 | 142 × 70 × 8.2 |
 | `dpn-grip-top.stl` | (손잡이형 앞판) | PLA / PETG, 서포트 필요 | 142 × 70 × 5.5 |
-| `dpn-gripA-bottom.stl` | (손잡이형 뒷판, 낮음) | PLA / PETG, 서포트 필요 | 142 × 70 × 13.2 |
-| `dpn-gripB-bottom.stl` | (손잡이형 뒷판, 중간) | PLA / PETG, 서포트 필요 | 142 × 70 × 15.2 |
-| `dpn-gripC-bottom.stl` | (손잡이형 뒷판, 높음) | PLA / PETG, 서포트 필요 | 142 × 70 × 19.2 |
+| `dpn-gripG4-bottom.stl` | (손잡이형 뒷판, 생성 곡면 예산 4 mm) | PLA / PETG, 서포트 필요 | 142 × 70 × 10.3 |
+| `dpn-gripG7-bottom.stl` | (손잡이형 뒷판, 생성 곡면 예산 7 mm, 기본) | PLA / PETG, 서포트 필요 | 142 × 70 × 11.6 |
+| `dpn-gripG10-bottom.stl` | (손잡이형 뒷판, 생성 곡면 예산 10 mm) | PLA / PETG, 서포트 필요 | 142 × 70 × 13.2 |
 
 `dpn-bottom-sls.stl`은 뒷면 가장자리가 완전한 원호인 뒷판으로, FDM에서는 서포트가 필요하다. FDM이면 `dpn-bottom.stl`을 쓴다.
 
-손잡이형은 `dpn-top.stl`·`dpn-bottom.stl` 대신 `dpn-grip-top.stl`과 `dpn-gripA/B/C-bottom.stl` 중 하나를 쓰고 (뒷판은 열린 쪽이 바닥을 향하게 놓여 있다), 키매트와 어깨 캡은 같은 것을 쓴다. 키매트는 좌우가 다르다(왼쪽에 탭 키).
+손잡이형은 `dpn-top.stl`·`dpn-bottom.stl` 대신 `dpn-grip-top.stl`과 `dpn-gripG4/G7/G10-bottom.stl` 중 하나를 쓰고 (뒷판은 열린 쪽이 바닥을 향하게 놓여 있다), 키매트와 어깨 캡은 같은 것을 쓴다. 키매트는 좌우가 다르다(왼쪽에 탭 키).
+
+손잡이 곡면은 쥐기 시뮬레이션이 생성한 것이다(`sim/grip_gen.py`, `docs/case.md` 3절).

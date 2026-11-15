@@ -8,6 +8,7 @@
 //  - 주머니: 튀어나온 것이 없다. 가장자리 두께가 얇아 미끄러져 들어가고, 키캡은 0.6 mm만 솟는다.
 //  - FDM: 두 껍데기 모두 바깥 면을 바닥에 붙여 서포트 없이 출력한다. 그래서 곡면은 45°보다 눕지 않는다.
 include <dpn_core.scad>
+include <grip_fields.scad>   // sim/grip_gen.py 가 생성한 손잡이 곡면
 
 part = "assembly";
 style = "slim";
@@ -34,11 +35,7 @@ grip_depth = 0.6;   // 홈 깊이 (0.2 mm 적층 3겹)
 grip_w    = 1.2;    // 홈 폭 (바닥면 브리지가 되므로 1.5 이하)
 grip_pitch = 3.6;   // 홈 간격
 // style = "grip" 전용
-grip_variant = "B";   // 그립 시뮬레이션(sim/grip.py)으로 고른 후보: "A" 낮음 | "B" 중간 | "C" 높음 | "custom"
-// custom 일 때 쓰는 값 [높이, 마루 위치(옆 모서리에서), 안쪽 비탈 폭, 손가락 골 깊이 비율]
-lump_custom = [7, 52, 15, 0];
-lump_len  = 62;     // 융기의 세로 길이
-lump_fade = 22;     // 위아래 끝이 본체로 사그라드는 길이
+grip_variant = "G7";  // 쥐기 시뮬레이션이 생성한 곡면 (sim/grip_gen.py). 이름의 숫자는 높이 예산(mm): "G4" | "G7" | "G10"
 rim_h     = 1.4;    // 앞면 테두리 턱 높이 (엄지 받침 + 주머니에서 키 보호)
 rim_w     = 2.4;    // 테두리 턱 폭
 
@@ -133,31 +130,24 @@ module front_rim() {
     }
 }
 
-// 뒷면 손잡이 융기 (grip): 높이장(heightfield)으로 만든 한 덩어리 곡면.
-// 가장자리 곡면이 끝나는 곳에서 기울기 0으로 솟기 시작해 마루까지 완만히 오르고(손바닥을 채움),
-// 마루 안쪽은 짧은 비탈로 내려와 다시 기울기 0으로 뒷면에 닿는다(손가락 끝이 걸림).
-// 모든 경계가 접선으로 이어지므로 본체와의 사이에 꺾인 선이 없다. sim/grip.py 의 height()와 같은 식.
-LUMPS = [["A", [5, 52, 15, 0]], ["B", [7, 52, 15, 0]], ["C", [11, 52, 15, 0]]];
-lump = grip_variant == "custom" ? lump_custom : LUMPS[search([grip_variant], LUMPS)[0]][1];
-function sm(t) = let(u = min(max(t, 0), 1)) u * u * (3 - 2 * u);
-function lump_height(a, y) = lump[0]
-    * (a <= lump[1] ? sm((a - fdm_total) / (lump[1] - fdm_total)) : 1 - sm((a - lump[1]) / lump[2]))
-    * (1 - sm((abs(y + 1) - (lump_len / 2 - lump_fade)) / lump_fade))
-    * (1 - lump[3] * (0.5 + 0.5 * cos(360 * (y + 1 - 9.5) / 19)));
+// 뒷면 손잡이 (grip): 정해 둔 틀 없이 쥐기 시뮬레이션이 생성한 높이장(heightfield).
+// sim/grip_gen.py 가 3마디 손가락 모델로 감아쥐기를 시뮬레이션하며 진화 전략으로 곡면을 길러 grip_fields.scad 에 쓴다.
+// 높이장은 모든 경계에서 높이·기울기가 0이라 본체와 접선으로 이어진다. 안테나 금지 구역은 높이 0.
+gen = GEN_FIELDS[search([grip_variant], GEN_FIELDS)[0]][1];
 
 module grip_lump(s) {
-    na = 36;  ny = 64;
-    a1 = lump[1] + lump[2];
-    function pa(i) = fdm_total + (a1 - fdm_total) * i / (na - 1);
-    function py(j) = -1 - lump_len / 2 + lump_len * j / (ny - 1);
+    na = gen_a[2];  ny = gen_y[2];
+    function pa(i) = gen_a[0] + gen_a[1] * i;
+    function py(j) = gen_y[0] + gen_y[1] * j;
     N = na * ny;
     pts = concat(
-        [for (i = [0 : na - 1]) for (j = [0 : ny - 1]) [out_w / 2 - pa(i), py(j), bot_z - lump_height(pa(i), py(j))]],
+        [for (i = [0 : na - 1]) for (j = [0 : ny - 1]) [out_w / 2 - pa(i), py(j), bot_z - gen[i][j]]],
         [for (i = [0 : na - 1]) for (j = [0 : ny - 1]) [out_w / 2 - pa(i), py(j), bot_z + 0.3]]);
     function t(i, j) = i * ny + j;
     function b(i, j) = N + i * ny + j;
     faces = concat(
-        [for (i = [0 : na - 2]) for (j = [0 : ny - 2]) [t(i, j), t(i, j + 1), t(i + 1, j + 1), t(i + 1, j)]],
+        [for (i = [0 : na - 2]) for (j = [0 : ny - 2]) for (q = [[t(i, j), t(i, j + 1), t(i + 1, j + 1)],
+                                                                  [t(i, j), t(i + 1, j + 1), t(i + 1, j)]]) q],
         [for (i = [0 : na - 2]) for (j = [0 : ny - 2]) [b(i, j), b(i + 1, j), b(i + 1, j + 1), b(i, j + 1)]],
         [for (j = [0 : ny - 2]) [t(0, j), b(0, j), b(0, j + 1), t(0, j + 1)]],
         [for (j = [0 : ny - 2]) [t(na - 1, j), t(na - 1, j + 1), b(na - 1, j + 1), b(na - 1, j)]],
