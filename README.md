@@ -32,6 +32,7 @@
 - [docs/simulation.md](docs/simulation.md) — 엄지 관절 모델 타자 시뮬레이션: 방법, 결과, 한계
 - [docs/cost.md](docs/cost.md) — 생산 단가 추정 (시제품 / 1,000대 / 10,000대)
 - [docs/parts-order.md](docs/parts-order.md) — 단계별 부품 주문 리스트와 소량 한국 배송 판매처
+- [docs/devicemart.md](docs/devicemart.md) — 디바이스마트 부품만으로 구성한 안 (케이스는 앞판만 0.5 mm 변경)
 
 ## 저장소 구성
 

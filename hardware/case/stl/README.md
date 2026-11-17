@@ -34,3 +34,12 @@ A1(256 × 256 mm) 판에 맞게 부품을 묶어 둔 파일이다. 재질과 서
 - Bambu Studio에서 STL 하나가 객체 하나로 들어온다. 부품마다 설정을 바꾸려면 우클릭 → 분할 → 객체로 분할.
 - TPU는 AMS lite로 넣지 말고 뒤쪽 외부 스풀 홀더로 바로 넣는다.
 - 3번 판: 서포트 켜기, 유형 tree(auto), "빌드 플레이트에서만". G4 · G7 · G10은 겉으로 구분이 어려우니 떼어 낼 때 안쪽에 표시해 둔다.
+
+## 디바이스마트안 / 스위치 높이 2.5 mm (`devicemart/`)
+
+SKRPABE010의 실제 높이(2.5 mm)에 맞춰 `sw_h=2.5`로 뽑은 앞판이다. 뒷판·키매트·어깨 캡은 위 파일을 그대로 쓴다. 근거는 `docs/devicemart.md`.
+
+| 파일 | 대신하는 파일 | 크기 (mm) |
+|---|---|---|
+| `devicemart/dpn-top-sw25.stl` | `dpn-top.stl` | 142 × 70 × 4.6 |
+| `devicemart/dpn-grip-top-sw25.stl` | `dpn-grip-top.stl` | 142 × 70 × 6.0 |
