@@ -31,6 +31,7 @@
 - [docs/case.md](docs/case.md) — 코어 인터페이스, 케이스 두 종류(얇은 형, 손잡이형), 한 손 쥐기 시뮬레이션, 출력 방법
 - [docs/simulation.md](docs/simulation.md) — 엄지 관절 모델 타자 시뮬레이션: 방법, 결과, 한계
 - [docs/cost.md](docs/cost.md) — 생산 단가 추정 (시제품 / 1,000대 / 10,000대)
+- [docs/parts-order.md](docs/parts-order.md) — 단계별 부품 주문 리스트와 소량 한국 배송 판매처
 
 ## 저장소 구성
 
